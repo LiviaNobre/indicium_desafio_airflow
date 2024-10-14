@@ -18,6 +18,26 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
+   
+##########################################################################
+# Função que extrai dados do banco de dados SQLite e salva em CSV
+def extract_data_to_csv():
+    # Conectando ao banco de dados Northwind (caminho do arquivo .db)
+    conn = sqlite3.connect('../../Northwind_small.sqlite')
+
+    # Executando a consulta SQL para extrair dados (exemplo: tabela 'Customers')
+    query = "SELECT * FROM Order"
+    df = pd.read_sql(query, conn)
+
+    # Salvando o resultado em um arquivo CSV
+    df.to_csv('../../output_orders.csv', index=False)
+
+    # Fechando a conexão com o banco de dados
+    conn.close()
+    return None
+
+
+##########################################################################
 
 ## Do not change the code below this line ---------------------!!#
 def export_final_answer():
@@ -50,9 +70,22 @@ with DAG(
     dag.doc_md = """
         Esse é o desafio de Airflow da Indicium.
     """
+    
+     # Task para extrair e salvar os dados
+    extract_task = PythonOperator(
+        task_id='extract_and_save_to_csv',
+        python_callable=extract_data_to_csv,
+        dag=dag,
+    )
+    
    
     export_final_output = PythonOperator(
         task_id='export_final_output',
         python_callable=export_final_answer,
         provide_context=True
     )
+
+   
+    # order tasks
+    
+    extract_data_to_csv >> export_final_output
